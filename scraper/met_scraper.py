@@ -45,6 +45,10 @@ def log_failed_request(artwork_url: str, artwork_id: int, err: Exception):
     with open('failed.txt', 'a') as f:
         f.write("ID: {0:<10} URL: {1:<50} ERR: {}\n".format(artwork_id, artwork_url, err))
 
+def log_successful_request(artwork_url: str, artwork_id: int):
+    with open('success.txt', 'a') as f:
+        f.write("ID: {0:<10} URL: {1:<50}\n".format(artwork_id, artwork_url))
+
 
 def get_starting_id() -> int:
     files = os.listdir(IMAGES_PATH)
