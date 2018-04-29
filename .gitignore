@@ -106,3 +106,4 @@ venv.bak/
 # Project files
 tags
 MetObjects.csv
+scraper/images/
