@@ -3,6 +3,14 @@ import pandas as pd
 
 import os
 
+"""
+This script moves previously-scraped images into a new folder if they match
+our criteria to be included in analysis later (>1000 samples per Object Name).
+Basically, we only want to scrape images for an Object Name (painting, vase, etc.)
+if we have more than 1000 examples of them in the dataset. This script lets us avoid
+re-scraping old images.
+"""
+
 DATASET_PATH = '../MetObjects.csv'
 NEW_PATH = 'images'
 OLD_PATH = 'old-images'
