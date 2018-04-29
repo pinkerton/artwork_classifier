@@ -12,6 +12,16 @@ IMAGES_PATH = 'images'
 MAX_RETRIES = 3
 BUCKET_THRESHOLD = 1000
 
+
+def get_starting_id() -> int:
+    files = os.listdir(IMAGES_PATH)
+    if len(files) == 0:
+        return 0
+    # ['33.jpg', '330.jpg', '34.jpg'] => [33, 330, 34]
+    artwork_ids = [int(filename.split('.')[0]) for filename in files]
+    return max(artwork_ids)
+
+
 def fetch_page(url: str) -> bytes:
     response = requests.get(url, timeout=5)
     response.raise_for_status()
@@ -45,18 +55,10 @@ def log_failed_request(artwork_url: str, artwork_id: int, err: Exception):
     with open('failed.txt', 'a') as f:
         f.write("ID: {0:<10} URL: {1:<50} ERR: {}\n".format(artwork_id, artwork_url, err))
 
+
 def log_successful_request(artwork_url: str, artwork_id: int):
     with open('success.txt', 'a') as f:
         f.write("ID: {0:<10} URL: {1:<50}\n".format(artwork_id, artwork_url))
-
-
-def get_starting_id() -> int:
-    files = os.listdir(IMAGES_PATH)
-    if len(files) == 0:
-        return 0
-    # ['33.jpg', '330.jpg', '34.jpg'] => [33, 330, 34]
-    artwork_ids = [int(filename.split('.')[0]) for filename in files]
-    return max(artwork_ids)
 
 
 def scrape():
@@ -84,6 +86,8 @@ def scrape():
 
         if not done:
             log_failed_request(artwork_url, artwork_id, last_exception)
+        else:
+            log_succesful_request(artwork_url, artwork_id)
 
 
 if __name__ == '__main__':
