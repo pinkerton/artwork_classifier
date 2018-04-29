@@ -107,3 +107,4 @@ venv.bak/
 tags
 MetObjects.csv
 scraper/images/
+*.jpg
