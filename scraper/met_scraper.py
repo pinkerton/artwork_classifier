@@ -87,7 +87,7 @@ def scrape():
         if not done:
             log_failed_request(artwork_url, artwork_id, last_exception)
         else:
-            log_succesful_request(artwork_url, artwork_id)
+            log_successful_request(artwork_url, artwork_id)
 
 
 if __name__ == '__main__':
