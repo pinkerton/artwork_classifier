@@ -66,7 +66,7 @@ def scrape():
     df = pd.read_csv(DATASET_PATH)
     public_domain = df.loc[df['Is Public Domain'] == True]
     sampled_artwork = public_domain.groupby('Object Name').filter(lambda x: len(x) >= BUCKET_THRESHOLD)
-    remaining_artwork = sampled_artwork.iloc[starting_id:]
+    remaining_artwork = sampled_artwork.loc[starting_id:]
     public_domain_links = remaining_artwork['Link Resource']
     for artwork_id, page_url in public_domain_links.iteritems():
         retries = 0
