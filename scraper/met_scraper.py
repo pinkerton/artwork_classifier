@@ -1,3 +1,4 @@
+import os
 import re
 import shutil
 
@@ -7,7 +8,9 @@ import pandas as pd
 import requests
 
 DATASET_PATH = '../MetObjects.csv'
+IMAGES_PATH = 'images'
 MAX_RETRIES = 3
+BUCKET_THRESHOLD = 1000
 
 def fetch_page(url: str) -> bytes:
     response = requests.get(url, timeout=5)
@@ -38,18 +41,31 @@ def download_artwork(artwork_url: str, artwork_id: int):
     del response
 
 
-def log_failed_request(artwork_url: str, artwork_id: int):
+def log_failed_request(artwork_url: str, artwork_id: int, err: Exception):
     with open('failed.txt', 'a') as f:
-        f.write("ID: {}\tURL: {}\n".format(artwork_id, artwork_url))
+        f.write("ID: {0:<10} URL: {1:<50} ERR: {}\n".format(artwork_id, artwork_url, err))
+
+
+def get_starting_id() -> int:
+    files = os.listdir(IMAGES_PATH)
+    if len(files) == 0:
+        return 0
+    # ['33.jpg', '330.jpg', '34.jpg'] => [33, 330, 34]
+    artwork_ids = [int(filename.split('.')[0]) for filename in files]
+    return max(artwork_ids)
 
 
 def scrape():
+    starting_id = get_starting_id()
     df = pd.read_csv(DATASET_PATH)
     public_domain = df.loc[df['Is Public Domain'] == True]
-    public_domain_links = public_domain['Link Resource']
+    sampled_artwork = public_domain.groupby('Object Name').filter(lambda x: len(x) >= BUCKET_THRESHOLD)
+    remaining_artwork = sampled_artwork.iloc[starting_id:]
+    public_domain_links = remaining_artwork['Link Resource']
     for artwork_id, page_url in public_domain_links.iteritems():
         retries = 0
         done = False
+        last_exception = None
         while not done and retries < MAX_RETRIES:
             print("Fetching {} (attempt #{})".format(artwork_id, retries))
             try:
@@ -59,10 +75,11 @@ def scrape():
                 done = True
             except requests.exceptions.RequestException as err:
                 print(err)
+                last_exception = err
                 retries += 1
 
         if not done:
-            log_failed_request(artwork_url, artwork_id)
+            log_failed_request(artwork_url, artwork_id, last_exception)
 
 
 if __name__ == '__main__':
