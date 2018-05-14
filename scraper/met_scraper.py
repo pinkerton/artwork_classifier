@@ -7,10 +7,12 @@ import numpy as np
 import pandas as pd
 import requests
 
-DATASET_PATH = '../MetObjects.csv'
+DATASET_PATH = 'MetObjects.csv'
 IMAGES_PATH = 'images'
 MAX_RETRIES = 3
 BUCKET_THRESHOLD = 1000
+
+# TODO: add optional rate limiting
 
 
 def get_starting_id() -> int:
@@ -31,6 +33,7 @@ def fetch_page(url: str) -> bytes:
 def parse_page(content: bytes) -> str:
     page_content = BeautifulSoup(content, "html.parser")
     download_button = page_content.find(class_='utility-menu__item utility-menu__item--download')
+    # TODO: bail in case this fails
     href = download_button.a['href']
     artwork_url = re.search('https\S+.\w', href).group(0)
     return artwork_url
