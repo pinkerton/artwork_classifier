@@ -19,10 +19,10 @@ import pandas as pd
 from scraper.met_scraper import get_starting_id
 import utils
 
-img_width, img_height = 200, 200
+img_width, img_height = 150, 150
 batch_size = 32 # or 16?
 num_classes = 10
-epochs = 100 # or 50?
+epochs = 3  # ???
 nb_train_samples = 9000
 nb_validation_samples = 1000
 save_dir = os.path.join(os.getcwd(), 'saved_models')
