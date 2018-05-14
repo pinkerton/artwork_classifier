@@ -11,52 +11,38 @@ from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_a
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
+from keras import backend as K
 import os
+import numpy as np
+import pandas as pd
 
-batch_size = 32
+from scraper.met_scraper import get_starting_id
+import utils
+
+img_width, img_height = 200, 200
+batch_size = 32 # or 16?
 num_classes = 10
-epochs = 100
-data_augmentation = True
-num_predictions = 20
+epochs = 100 # or 50?
+nb_train_samples = 9000
+nb_validation_samples = 1000
 save_dir = os.path.join(os.getcwd(), 'saved_models')
 model_name = 'keras_artwork_classifier_trained_model.h5'
+train_data_dir = "data/training"
+test_data_dir = "data/testing"
 
-# TODO: resize the images on the server to 256x256 with https://askubuntu.com/a/801746
-# TODO: combine this with code in the Jupyter notebook to iterate over the images we actually sampled
-for i in range(10000):
-  img = img_load("resized-images/{}.jpg".format(i))
-  x = img_to_array(img)  # Numpy array with shape (3, 256, 256)
-  x = x.reshape((1,) + x.shape)  # this is a Numpy array with shape (1, 3, 256, 256)
+LAST_SCRAPED_ID = 100888
+
+# Resource: https://blog.keras.io/building-powerful-image-classification-models-using-very-little-data.html
 
 
-# Process the images (https://blog.keras.io/building-powerful-image-classification-models-using-very-little-data.html)
-datagen = ImageDataGenerator(
-        rotation_range=40,
-        width_shift_range=0.2,
-        height_shift_range=0.2,
-        rescale=1./255,
-        shear_range=0.2,
-        zoom_range=0.2,
-        horizontal_flip=True,
-        fill_mode='nearest')
-
-# The data, split between train and test sets:
-training_data = None    # uint8 array of RGB image data with shape (num_samples, 3, 32, 32)
-training_labels = None    # uint8 array of category labels with shape (num_samples,)
-testing_data = None     # uint8 array of RGB image data with shape (num_samples, 3, 32, 32)
-testing_labels = None     # uint8 array of category labels with shape (num_samples,)
-print('training_data shape:', training_data.shape)
-print(training_data.shape[0], 'train samples')
-print(testing_data.shape[0], 'test samples')
-
-# Convert class vectors to binary class matrices.
-training_labels = keras.utils.to_categorical(training_labels, num_classes)
-testing_labels = keras.utils.to_categorical(testing_labels, num_classes)
+if K.image_data_format() == 'channels_first':
+    input_shape = (3, img_width, img_height)
+else:
+    input_shape = (img_width, img_height, 3)
 
 # Model taken from example image classification code
 model = Sequential()
-model.add(Conv2D(32, (3, 3), padding='same',
-                 input_shape=training_data.shape[1:]))
+model.add(Conv2D(32, (3, 3), padding='same', input_shape=input_shape))
 model.add(Activation('relu'))
 model.add(Conv2D(32, (3, 3)))
 model.add(Activation('relu'))
@@ -78,50 +64,45 @@ model.add(Dense(num_classes))
 model.add(Activation('softmax'))
 
 # initiate RMSprop optimizer
-opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
+# opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
 
 # Let's train the model using RMSprop
 model.compile(loss='categorical_crossentropy',
-              optimizer=opt,
+              optimizer='rmsprop',
               metrics=['accuracy'])
 
-training_data = training_data.astype('float32')
-testing_data = testing_data.astype('float32')
-training_data /= 255
-testing_data /= 255
+# training data augmentation
+train_datagen = ImageDataGenerator(
+    #rotation_range=40,
+    rescale=1. / 255,
+    shear_range=0.2,
+    zoom_range=0.2,
+    width_shift_range=0.1,  # randomly shift images horizontally (fraction of total width)
+    height_shift_range=0.1,  # randomly shift images vertically (fraction of total height)
+    horizontal_flip=True,
+    fill_mode='nearest')
 
-if not data_augmentation:
-    print('Not using data augmentation.')
-    model.fit(training_data, training_labels,
-              batch_size=batch_size,
-              epochs=epochs,
-              validation_data=(testing_data, testing_labels),
-              shuffle=True)
-else:
-    print('Using real-time data augmentation.')
-    # This will do preprocessing and realtime data augmentation:
-    datagen = ImageDataGenerator(
-        featurewise_center=False,  # set input mean to 0 over the dataset
-        samplewise_center=False,  # set each sample mean to 0
-        featurewise_std_normalization=False,  # divide inputs by std of the dataset
-        samplewise_std_normalization=False,  # divide each input by its std
-        zca_whitening=False,  # apply ZCA whitening
-        rotation_range=0,  # randomly rotate images in the range (degrees, 0 to 180)
-        width_shift_range=0.1,  # randomly shift images horizontally (fraction of total width)
-        height_shift_range=0.1,  # randomly shift images vertically (fraction of total height)
-        horizontal_flip=True,  # randomly flip images
-        vertical_flip=False)  # randomly flip images
+# testing data augmnetation
+test_datagen = ImageDataGenerator(rescale=1. / 255)
 
-    # Compute quantities required for feature-wise normalization
-    # (std, mean, and principal components if ZCA whitening is applied).
-    datagen.fit(training_data)
+train_generator = train_datagen.flow_from_directory(
+    train_data_dir,
+    target_size=(img_width, img_height),
+    batch_size=batch_size,
+    class_mode='categorical')
 
-    # Fit the model on the batches generated by datagen.flow().
-    model.fit_generator(datagen.flow(training_data, training_labels,
-                                     batch_size=batch_size),
-                        epochs=epochs,
-                        validation_data=(testing_data, testing_labels),
-                        workers=4)
+testing_generator = test_datagen.flow_from_directory(
+    test_data_dir,
+    target_size=(img_width, img_height),
+    batch_size=batch_size,
+    class_mode='categorical')
+
+model.fit_generator(
+    train_generator,
+    steps_per_epoch=nb_train_samples // batch_size,
+    epochs=epochs,
+    validation_data=testing_generator,
+    validation_steps=nb_validation_samples // batch_size)
 
 # Save model and weights
 if not os.path.isdir(save_dir):
