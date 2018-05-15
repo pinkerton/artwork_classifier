@@ -11,6 +11,7 @@ from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_a
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
+from keras.callbacks import History
 from keras import backend as K
 import os
 import numpy as np
@@ -97,23 +98,26 @@ testing_generator = test_datagen.flow_from_directory(
     batch_size=batch_size,
     class_mode='categorical')
 
+history = History()
+
 model.fit_generator(
     train_generator,
     steps_per_epoch=nb_train_samples // batch_size,
     epochs=epochs,
     validation_data=testing_generator,
     validation_steps=nb_validation_samples // batch_size,
-    verbose=2)
+    verbose=2,
+    callbacks=[history])
 
 # Save model and weights
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)
-history = model_path = os.path.join(save_dir, model_name)
+model_path = os.path.join(save_dir, model_name)
 model.save(model_path)
 print('Saved trained model at %s ' % model_path)
 
-for key, val in history.history.items():
-  print("{} => {}".format(key, val))
+print(history.epochs)
+print(history.history)
 
 # Score trained model.
 # scores = model.evaluate(testing_data, testing_labels, verbose=1)
