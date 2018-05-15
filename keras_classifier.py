@@ -102,14 +102,18 @@ model.fit_generator(
     steps_per_epoch=nb_train_samples // batch_size,
     epochs=epochs,
     validation_data=testing_generator,
-    validation_steps=nb_validation_samples // batch_size)
+    validation_steps=nb_validation_samples // batch_size,
+    verbose=2)
 
 # Save model and weights
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)
-model_path = os.path.join(save_dir, model_name)
+history = model_path = os.path.join(save_dir, model_name)
 model.save(model_path)
 print('Saved trained model at %s ' % model_path)
+
+for key, val in history.history.items():
+  print("{} => {}".format(key, val))
 
 # Score trained model.
 # scores = model.evaluate(testing_data, testing_labels, verbose=1)
