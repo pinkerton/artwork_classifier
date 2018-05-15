@@ -116,7 +116,7 @@ model_path = os.path.join(save_dir, model_name)
 model.save(model_path)
 print('Saved trained model at %s ' % model_path)
 
-print(history.epochs)
+print(history.epoch)
 print(history.history)
 
 # Score trained model.
