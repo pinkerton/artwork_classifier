@@ -64,7 +64,7 @@ def bucket_images_by_label(data_type, dataset):
 
     for label, img_ids in dataset.items():
         # create a directory for these labelled images if it doesn't exist
-        label_dir = "{}/{}".format(data_type, label)
+        label_dir = "data/{}/{}".format(data_type, label)
         if not os.path.exists(label_dir):
             os.makedirs(label_dir)
         for img_id in img_ids:
